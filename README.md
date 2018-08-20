@@ -1,0 +1,1 @@
+cryptoway-plugin
