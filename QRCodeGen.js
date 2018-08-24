@@ -11,6 +11,7 @@ function getDataAsync(urlToGoTo){
   var req = new XMLHttpRequest();
   req.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200){
+      document.getElementById('toChange').innerHTML = this.responseText;
       return "hello";
     }
   }
@@ -19,7 +20,7 @@ function getDataAsync(urlToGoTo){
 }
 function confirmTx(dataText, address, reciept, amount=null){
     document.getElementById('toChange').innerHTML = dataText;
-    var dataObj = JSON.parse(dataText);
+    //var dataObj = JSON.parse(dataText);
     /*for(i=0; i<addressInfoObj.txs.length; i++){
       var currentTx = addressInfoObj[i]
 
@@ -38,4 +39,6 @@ function generateQR(message) {
 var message = encodeBip21Uri(DarshansKey, 1, 'Harry-Potter', reciept='Y3r-4-Wiz4rd');
 //var realmessage = getDataAsync("?currency="+currency);
 generateQR(message);
-confirmTx(getDataAsync("https://mail.google.com/mail/u/0/#inbox"), DarshansKey, 5);
+var response = getDataAsync("README.txt");
+//confirmTx(getDataAsync("README.txt"), DarshansKey, 5);
+setTimeout(function() {confirmTx(response, DarshansKey, 5)}, 2000);
