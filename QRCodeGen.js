@@ -2,43 +2,98 @@
 // bitcoin:175tWpb8K1S7NmH4Zx6rewF9WQrcZv245W?amount=50&label=Merchant-Name&message=123aB
 // message is the reciept number, which must be in base 58 to save space, and to elimenate l, i, O, and 0
 
-var DarshansKey = "bc1qdj09ed6jz2qule8pd8hgufff8um3pqdvy59esx";
+var DarshansKey = "bc1qdjo9ed6jz2qu1e8pd8hgufff8um3pqdvy59esx";
+var someoneElsesAddress = "1aa5cmqmvQq8YQTEqcTmW7dfBNuFwgdCD"
+var myAddress = "14AnA29UZVJbcCJjVBqGPLUgmUcLzKgfYL"
+
+var parag = document.getElementById('toChange');
+var canvas = document.getElementById('qrCanvas');
+
+function hexToDec(val, reverse=false) {
+  if (!reverse){
+    for (place in val) {
+
+    }
+  }
+}
+
+//var lastResponse; //stores the last response from wherever
 function encodeBip21Uri(address, amount, name, receipt){
   var encodedUri = 'bitcoin:' + address + '?amount='+ amount + '&label=' + name + '&message=' + reciept;
   return encodedUri;
 }
-function getDataAsync(urlToGoTo){
+function getDataAsync(urlToGoTo, thingsToDo){
   var req = new XMLHttpRequest();
   req.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200){
       document.getElementById('toChange').innerHTML = this.responseText;
-      return "hello";
+      thingsToDo(this.responseText);
     }
   }
   req.open(method="GET", url=urlToGoTo, async=true);
   req.send();
 }
-function confirmTx(dataText, address, reciept, amount=null){
-    document.getElementById('toChange').innerHTML = dataText;
-    //var dataObj = JSON.parse(dataText);
-    /*for(i=0; i<addressInfoObj.txs.length; i++){
-      var currentTx = addressInfoObj[i]
-
-    }*/
+function confirmTx(toChange, data, address, reciept=null, amount=null){
+    var dataText = data;
+    var recLenBytes = 20;
+    var amountMatch = false;
+    var recieptMatch = false;
+    if (amount == null) {
+      amountMatch = true;
+    }
+    if (reciept == null) {
+      recieptMatch = true;
+    }
+    toChange.innerHTML = dataText;
+    var dataObj = JSON.parse(dataText);
+    for(currentTx in dataObj.txs) {
+      for (out in currentTx.out) {
+        if (out.script.slice(0, 2) == "6a" && out.script.slice(-2*recLenBytes) == reciept) {
+          recieptMatch = true;
+        } else if (out.script.slice(0, 6) == "76a914" && out.addr == address && out.value == amount*100000000) {
+          amountMatch = true;
+        }
+      }
+      if (recieptMatch == true && amountMatch == true){
+        toChange.innerHTML = "This is the currentTx: "+currentTx.toString();
+        return currentTx.hash.toString();
+      }
+    }
 }
+function confirmedScreen(txHash, canvas, toChange, intervalId=null) {
+  var ctx = canvas.getContext("2d");
+  var checkmark = document.getElementById("checkmark");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(checkmark, 0, 0, canvas.width, canvas.height);
+  toChange.innerHTML = "tx hash is: "+txHash;
+  if (intervalId != null) {
+  clearInterval(intervalId);
+  }
+}
+
 // Generate the QR Code with Nayuki's qrcodegen library (see QR-Code-generator folder)
 //from https://github.com/nayuki/QR-Code-generator
-function generateQR(message) {
+function generateQR(message, canvas) {
   var QRC = qrcodegen.QrCode;
   var scale = 8;
   var border = 4;
-  var canvas = document.getElementById('qrCanvas');
   var qr0 = QRC.encodeText(message, QRC.Ecc.HIGH);
   qr0.drawCanvas(scale, border, canvas);
 }
-var message = encodeBip21Uri(DarshansKey, 1, 'Harry-Potter', reciept='Y3r-4-Wiz4rd');
-//var realmessage = getDataAsync("?currency="+currency);
-generateQR(message);
-var response = getDataAsync("README.txt");
-//confirmTx(getDataAsync("README.txt"), DarshansKey, 5);
-setTimeout(function() {confirmTx(response, DarshansKey, 5)}, 2000);
+var message = encodeBip21Uri(myAddress, 1, 'Harry-Potter', reciept='Y3r-4-Wiz4rd');
+generateQR(message, canvas);
+
+function  txConfirmMaster(address=myAddress, amount=null, reciept=null, hcanvas=canvas, textToChange=parag){
+  id = setInterval(function() {getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+address,
+    function(response){x = confirmTx(textToChange, response, address, amount);
+    if (x != undefined){confirmedScreen(x, hcanvas, textToChange, id);};});}, 2000);
+}
+
+
+/*
+function txConfirmMaster(address, amount=null, reciept=null, hcanvas=canvas, toChange=parag){
+  getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+address,
+   function(reqObj){var id = setInterval(function(reqObj){var hash = confirmTx(toChange, reqObj, address, reciept, amount) != undefined ? function(hash, hcanvas, toChange){confirmedScreen(); clearInterval(id);}}, 500);});
+}*/
+txConfirmMaster(address=myAddress, amount=1);
+//setInterval(function() {getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+myAddress, function(response){parag.innerHTML=response; alert("iterated again!");})}, 2000);
