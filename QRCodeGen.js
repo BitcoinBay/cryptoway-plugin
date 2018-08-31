@@ -27,17 +27,19 @@ function getDataAsync(urlToGoTo, thingsToDo){
   req.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200){
       document.getElementById('toChange').innerHTML = this.responseText;
-      thingsToDo(this.responseText);
+      thingsToDo(this);
     }
   }
   req.open(method="GET", url=urlToGoTo, async=true);
   req.send();
+  return req
 }
-function confirmTx(toChange, data, address, reciept=null, amount=null){
-    var dataText = data;
+function confirmTx(toChange, data, address, amount=null, reciept=null){
+    var dataText = data.responseText;
     var recLenBytes = 20;
     var amountMatch = false;
     var recieptMatch = false;
+    //alert(amount);
     if (amount == null) {
       amountMatch = true;
     }
@@ -47,12 +49,17 @@ function confirmTx(toChange, data, address, reciept=null, amount=null){
     toChange.innerHTML = dataText;
     var dataObj = JSON.parse(dataText);
     for(currentTx in dataObj.txs) {
+      //toChange.innerHTML = currentTx.toString();
+      currentTx = dataObj.txs[currentTx]
       for (out in currentTx.out) {
+        out = currentTx.out[out]
         if (out.script.slice(0, 2) == "6a" && out.script.slice(-2*recLenBytes) == reciept) {
           recieptMatch = true;
         } else if (out.script.slice(0, 6) == "76a914" && out.addr == address && out.value == amount*100000000) {
           amountMatch = true;
         }
+          //toChange.innerHTML = "scriptSliced: "+out.script.slice(0, 6)+" vs: "+"76a914"+
+          //", address: "+out.addr+" vs: "+address+", amount: "+out.value+" vs: "+ (amount*100000000).toString();
       }
       if (recieptMatch == true && amountMatch == true){
         toChange.innerHTML = "This is the currentTx: "+currentTx.toString();
@@ -83,9 +90,9 @@ function generateQR(message, canvas) {
 var message = encodeBip21Uri(myAddress, 1, 'Harry-Potter', reciept='Y3r-4-Wiz4rd');
 generateQR(message, canvas);
 
-function  txConfirmMaster(address=myAddress, amount=null, reciept=null, hcanvas=canvas, textToChange=parag){
+function  txConfirmMaster(address=myAddress, amountMaster=null, recieptMaster=null, hcanvas=canvas, textToChange=parag){
   id = setInterval(function() {getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+address,
-    function(response){x = confirmTx(textToChange, response, address, amount);
+    function(response){x = confirmTx(textToChange, response, address, amount=amountMaster);
     if (x != undefined){confirmedScreen(x, hcanvas, textToChange, id);};});}, 2000);
 }
 
@@ -95,5 +102,5 @@ function txConfirmMaster(address, amount=null, reciept=null, hcanvas=canvas, toC
   getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+address,
    function(reqObj){var id = setInterval(function(reqObj){var hash = confirmTx(toChange, reqObj, address, reciept, amount) != undefined ? function(hash, hcanvas, toChange){confirmedScreen(); clearInterval(id);}}, 500);});
 }*/
-txConfirmMaster(address=myAddress, amount=1);
+txConfirmMaster(address=myAddress, amountMaster=0.0001);
 //setInterval(function() {getDataAsync("https://cors-anywhere.herokuapp.com/https://blockchain.info/rawaddr/"+myAddress, function(response){parag.innerHTML=response; alert("iterated again!");})}, 2000);
